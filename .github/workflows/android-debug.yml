@@ -1,0 +1,19 @@
+name: Build Android APKs
+on:
+  workflow_dispatch:
+  push:
+    paths: ['android-sender/**','android-viewer/**']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { app_dir: [android-sender, android-viewer] }
+    defaults: { run: { working-directory: ${{ matrix.app_dir }} } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - run: chmod +x gradlew || true
+      - run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with: { name: ${{ matrix.app_dir }}-debug-apk, path: ${{ matrix.app_dir }}/app/build/outputs/apk/debug/*.apk }

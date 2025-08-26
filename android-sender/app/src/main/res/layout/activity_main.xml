@@ -1,0 +1,13 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:padding="16dp">
+  <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <TextView android:id="@+id/tvStatus" android:text="Status: Idle" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnConsent" android:text="@string/consent_title" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnNotifAccess" android:text="Izin Notifikasi" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnUsageAccess" android:text="Izin Usage Stats" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnLocation" android:text="Izin Lokasi (opsional)" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnStart" android:text="@string/start_monitoring" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <Button android:id="@+id/btnStop" android:text="@string/stop_monitoring" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <TextView android:id="@+id/tvLog" android:text="Log..." android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="12dp"/>
+  </LinearLayout>
+</ScrollView>

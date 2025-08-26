@@ -1,0 +1,41 @@
+name: Build Signed Release APKs
+on: { workflow_dispatch: {} }
+jobs:
+  build-signed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - name: Prepare keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Build Sender release
+        working-directory: android-sender
+        env:
+          SIGNING_KEYSTORE: ${{ github.workspace }}/keystore.jks
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+          STORE_PASS: ${{ secrets.STORE_PASS }}
+        run: |
+          chmod +x gradlew || true
+          ./gradlew assembleRelease
+      - name: Build Viewer release
+        working-directory: android-viewer
+        env:
+          SIGNING_KEYSTORE: ${{ github.workspace }}/keystore.jks
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+          STORE_PASS: ${{ secrets.STORE_PASS }}
+        run: |
+          chmod +x gradlew || true
+          ./gradlew assembleRelease
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-apks
+          path: |
+            android-sender/app/build/outputs/apk/release/*.apk
+            android-viewer/app/build/outputs/apk/release/*.apk

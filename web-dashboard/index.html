@@ -1,0 +1,122 @@
+<!doctype html><html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consent Monitor — Dashboard</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;margin:0;padding:16px}
+  header{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input,button,select{padding:8px}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:1000px){.grid{grid-template-columns:2fr 1fr}}
+  .card{border:1px solid #ddd;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .events{max-height:60vh;overflow:auto;white-space:pre-wrap}
+  .muted{color:#666}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head><body>
+<header>
+  <h2 style="margin:0">Dashboard</h2>
+  <input id="device" placeholder="ANDROID_ID">
+  <input id="days" type="number" value="7" min="1" style="width:90px">
+  <button id="load">Muat</button>
+  <button id="csv">Export CSV</button>
+  <button id="dailyCsv">Export CSV Harian</button>
+  <span class="muted" id="status"></span>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h3>Ringkasan</h3>
+    <div id="summary">-</div>
+    <h4>Top Apps</h4>
+    <canvas id="appsChart"></canvas>
+    <h4>Peak Hours (App Foreground)</h4>
+    <canvas id="hoursChart"></canvas>
+    <h4>Ringkasan Harian</h4>
+    <div id="daily">-</div>
+  </div>
+  <div class="card">
+    <h3>Event</h3>
+    <div id="events" class="events">-</div>
+  </div>
+</div>
+
+<script>
+// Isi config Firebase-mu
+const firebaseConfig = { apiKey:"YOUR_API_KEY", authDomain:"YOUR_PROJECT.firebaseapp.com", projectId:"YOUR_PROJECT" };
+firebase.initializeApp(firebaseConfig);
+firebase.auth().signInAnonymously();
+const db = firebase.firestore();
+
+const $ = (id)=>document.getElementById(id); let cache=[]; let chartApps, chartHours; let dailyCache=[];
+
+$("load").onclick = async ()=>{
+  const dev = $("device").value.trim(); const days = parseInt($("days").value||"7",10);
+  if(!dev) return;
+  const since = Date.now()-days*24*3600*1000;
+  $("status").textContent="Memuat...";
+
+  const snap = await db.collection("devices").doc(dev).collection("events").where("ts",">=",since).orderBy("ts","desc").limit(5000).get();
+  cache = snap.docs.map(d=>d.data());
+  $("status").textContent = `${cache.length} event`;
+
+  // Events list
+  $("events").textContent = cache.map(e=>{
+    const t = new Date(e.ts||0).toLocaleString();
+    if(e.type==="notification") return `[${t}] 🔔 ${e.app} • ${e.title||""} — ${e.body||""}`;
+    if(e.type==="app_foreground") return `[${t}] ▶️ ${e.app}`;
+    if(e.type==="location") return `[${t}] 📍 ${e.lat}, ${e.lon}`;
+    return `[${t}] ${e.type}`;
+  }).join("\n");
+
+  // Top Apps
+  const notif = cache.filter(e=>e.type==="notification").length;
+  const apps = {}; cache.filter(e=>e.type==="app_foreground").forEach(e=>apps[e.app]=(apps[e.app]||0)+1);
+  const top = Object.entries(apps).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById("summary").innerHTML = `Notifikasi: <b>${notif}</b><br>Top Apps: ${top.map(([k,v])=>`${k} (${v})`).join(", ")||"-"}`;
+  if(chartApps) chartApps.destroy();
+  chartApps = new Chart(document.getElementById("appsChart"), { type:'bar', data:{ labels: top.map(d=>d[0]), datasets:[{label:'App open', data: top.map(d=>d[1])}] }, options:{plugins:{legend:{display:false}}} });
+
+  // Peak hours (histogram 0..23)
+  const hours = Array.from({length:24},()=>0);
+  cache.filter(e=>e.type==="app_foreground").forEach(e=>{
+    const h = new Date(e.ts||0).getHours(); hours[h]++;
+  });
+  if(chartHours) chartHours.destroy();
+  chartHours = new Chart(document.getElementById("hoursChart"), { type:'bar', data:{ labels: [...Array(24).keys()].map(h=>h.toString().padStart(2,'0')), datasets:[{label:'Count', data: hours}] }, options:{plugins:{legend:{display:false}}} });
+
+  // Daily summaries
+  const sumSnap = await db.collection("devices").doc(dev).collection("summaries").orderBy("day","desc").limit(30).get();
+  dailyCache = sumSnap.docs.map(d=>d.data());
+  $("daily").innerHTML = dailyCache.map(s=>{
+    const apps = (s.topApps||[]).map(x=>`${x.app}(${x.count})`).join(", ");
+    return `<div><b>${s.day}</b> — Notif: ${s.notif||0} — Top: ${apps||"-"}${s.hours?("<br>Peak hours: "+(s.hours.map((v,i)=>v>0?i:null).filter(x=>x!==null).slice(0,5).join(", "))) : ""}${s.ai?("<br><i>"+s.ai+"</i>"):""}</div>`;
+  }).join("");
+};
+
+$("csv").onclick = ()=>{
+  if(!cache.length) return;
+  const header = "ts,type,app,title,body,lat,lon\n";
+  const rows = cache.map(e=>[e.ts||0,e.type||"",e.app||"",e.title||"", (e.body||"").replace(/\n|\r/g,' '), e.lat||"", e.lon||""].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([header+rows],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download="events.csv"; a.click(); URL.revokeObjectURL(url);
+};
+
+$("dailyCsv").onclick = ()=>{
+  if(!dailyCache.length) return;
+  const header = "day,notif,topApps,hours,ai\n";
+  const rows = dailyCache.map(s=>{
+    const top = (s.topApps||[]).map(x=>x.app+":"+x.count).join("|");
+    const hours = (s.hours||[]).join("|");
+    const ai = (s.ai||"").replace(/\n|\r/g,' ');
+    return [s.day||"", s.notif||0, top, hours, ai].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",");
+  }).join("\n");
+  const blob = new Blob([header+rows],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download="summaries.csv"; a.click(); URL.revokeObjectURL(url);
+};
+</script>
+</body></html>

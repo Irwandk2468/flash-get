@@ -1,0 +1,20 @@
+name: Deploy Firebase Functions
+on:
+  workflow_dispatch:
+  push:
+    paths: ['functions/**']
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with: { credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }} }
+      - run: npm i -g firebase-tools
+      - run: npm ci
+        working-directory: functions/functions
+      - env:
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: firebase deploy --only functions --project "$PROJECT_ID"
+        working-directory: functions/functions

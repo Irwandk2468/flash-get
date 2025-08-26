@@ -1,0 +1,9 @@
+<resources>
+  <string name="app_name">Consent Monitor</string>
+  <string name="consent_title">Persetujuan Pemantauan</string>
+  <string name="consent_text">Dengan persetujuan, app mencatat (1) teks notifikasi yang tampil, (2) aplikasi yang dibuka, dan (3) lokasi (opsional). Anda bisa cabut izin kapan saja.</string>
+  <string name="agree">Saya setuju</string>
+  <string name="disagree">Saya tidak setuju</string>
+  <string name="start_monitoring">Mulai Monitoring</string>
+  <string name="stop_monitoring">Hentikan Monitoring</string>
+</resources>

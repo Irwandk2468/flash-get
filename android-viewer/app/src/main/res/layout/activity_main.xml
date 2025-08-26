@@ -1,0 +1,13 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:padding="16dp">
+  <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <EditText android:id="@+id/etDeviceId" android:hint="ANDROID_ID perangkat" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+      <EditText android:id="@+id/etDays" android:hint="Rentang hari (mis. 7)" android:inputType="number" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+      <Button android:id="@+id/btnLoad" android:text="Muat" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+      <Button android:id="@+id/btnCsv" android:text="Export CSV" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"/>
+    </LinearLayout>
+    <TextView android:id="@+id/tvSummary" android:text="Ringkasan..." android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"/>
+    <TextView android:id="@+id/tvEvents" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="8dp"/>
+  </LinearLayout>
+</ScrollView>
